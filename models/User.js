@@ -30,6 +30,14 @@ const UserSchema = new mongoose.Schema({
     required: [true, "Please verify with otp"],
     default: false,
   },
+  otp: {
+    type: Number,
+    required: false,
+  },
+  expiresIn: {
+    type: Date,
+    required: false,
+  },
 });
 
 UserSchema.pre("save", async function () {

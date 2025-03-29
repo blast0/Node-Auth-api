@@ -15,13 +15,46 @@ const transporter = nodemailer.createTransport({
 const verifyUser = async (req, res) => {
   const { email, password, otp } = req.body;
 
-  if (!email || !password) {
+  if (!email) {
     return res.status(400).json({
-      msg: "Bad request. Please add email and password in the request body",
+      msg: "Bad request. Please add email in the request body",
     });
   }
 
   let foundUser = await User.findOne({ email: req.body.email });
+  if (otp === foundUser.otp) {
+    const currentTime = new Date();
+
+    if (currentTime.getSeconds() < foundUser.expiresIn) {
+      const updated = await User.updateOne({ email }, { isVerified: true });
+      const token = jwt.sign(
+        { id: foundUser._id, name: foundUser.name },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "30d",
+        }
+      );
+      return res.status(201).json({
+        msg: "Email Verified Successfully",
+        user: {
+          id: foundUser._id,
+          email: foundUser.email,
+          isVerified: true,
+          name: foundUser.name,
+          v: foundUser._v,
+        },
+        token,
+      });
+    } else {
+      return res.status(400).json({
+        msg: "Otp Expired",
+      });
+    }
+  } else {
+    return res.status(400).json({
+      msg: "Invalid Otp",
+    });
+  }
 };
 
 const sendMail = async (mailoptions, cb) => {
@@ -34,13 +67,14 @@ const sendMail = async (mailoptions, cb) => {
 };
 
 const requestOtp = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  const { email } = req.body;
+  if (!email) {
     return res.status(400).json({
-      msg: "Bad request. Please add email and password in the request body",
+      msg: "Bad request. Please add email in the request body",
     });
   }
   let foundUser = await User.findOne({ email: req.body.email });
+
   const generateOTP = () => {
     const length = 6;
     const characters = "0123456789";
@@ -52,6 +86,18 @@ const requestOtp = async (req, res) => {
     return otp;
   };
   const otp = generateOTP();
+  const currentTime = new Date();
+  const expiresIn = new Date(currentTime.getSeconds() + 100);
+  const updated = await User.updateOne(
+    { email: req.body.email },
+    { $set: { otp, expiresIn } },
+    {
+      upsert: true,
+    }
+  );
+  let updatedUser = await User.findOne({ email: req.body.email });
+  console.log(updated, updatedUser);
+
   const mailoptions = {
     from: "Auth-backend-service",
     to: email,
