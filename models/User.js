@@ -25,6 +25,11 @@ const UserSchema = new mongoose.Schema({
     required: [true, "Please provide password"],
     minlength: 3,
   },
+  isVerified: {
+    type: Boolean,
+    required: [true, "Please verify with otp"],
+    default: false,
+  },
 });
 
 UserSchema.pre("save", async function () {
