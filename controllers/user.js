@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { jwtDecode } = require("jwt-decode");
 const nodemailer = require("nodemailer");
+const path = require("path");
 
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
@@ -31,7 +32,7 @@ const verifyUser = async (req, res) => {
         { id: foundUser._id, name: foundUser.name },
         process.env.JWT_SECRET,
         {
-          expiresIn: "30d",
+          expiresIn: "1d",
         }
       );
       return res.status(201).json({
@@ -113,6 +114,21 @@ const requestOtp = async (req, res) => {
   });
 };
 
+const upload = (req, res) => {
+  const files = req.files;
+  Object.keys(files).forEach((key) => {
+    const filepath = path.join("./", "files", files[key].name);
+    files[key].mv(filepath, (err) => {
+      if (err) return res.status(500).json({ status: "error", message: err });
+    });
+  });
+
+  return res.json({
+    status: "success",
+    message: Object.keys(files).toString(),
+  });
+};
+
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -131,7 +147,7 @@ const login = async (req, res) => {
         { id: foundUser._id, name: foundUser.name },
         process.env.JWT_SECRET,
         {
-          expiresIn: "30d",
+          expiresIn: "1d",
         }
       );
 
@@ -168,7 +184,7 @@ const googleLogin = async (req, res) => {
   const googleInfo = jwtDecode(req.body.credential);
   let foundUser = await User.findOne({ email: googleInfo.email });
   if (foundUser === null) {
-    let { email } = googleInfo;
+    let { email, picture } = googleInfo;
     const password = generatePassword();
     if (email.length && password.length) {
       const person = new User({
@@ -176,6 +192,7 @@ const googleLogin = async (req, res) => {
         email: email,
         password: password,
         isVerified: true,
+        picture,
       });
       await person.save();
       const newUser = await User.findOne({ email: googleInfo.email });
@@ -271,4 +288,5 @@ module.exports = {
   getAllUsers,
   verifyUser,
   requestOtp,
+  upload,
 };

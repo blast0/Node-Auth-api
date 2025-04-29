@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-
+const filesPayloadExists = require("../middleware/filesPayloadExists");
+const fileExtLimiter = require("../middleware/fileExtLimiter");
+const fileSizeLimiter = require("../middleware/fileSizeLimiter");
+const fileUpload = require("express-fileupload");
 const {
   login,
   logout,
@@ -10,6 +13,7 @@ const {
   getAllUsers,
   verifyUser,
   requestOtp,
+  upload,
 } = require("../controllers/user");
 const authMiddleware = require("../middleware/auth");
 
@@ -21,5 +25,14 @@ router.route("/logout").post(logout);
 router.route("/register").post(register);
 router.route("/dashboard").get(authMiddleware, dashboard);
 router.route("/users").get(getAllUsers);
+router
+  .route("/upload")
+  .post(
+    fileUpload({ createParentPath: true }),
+    filesPayloadExists,
+    fileExtLimiter([".png", ".jpg", ".jpeg"]),
+    fileSizeLimiter,
+    upload
+  );
 
 module.exports = router;

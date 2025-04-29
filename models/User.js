@@ -8,7 +8,6 @@ const UserSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 50,
   },
-
   email: {
     type: String,
     required: [true, "Please provide email"],
@@ -38,6 +37,10 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     required: false,
   },
+  // picture: {
+  //   type: URL,
+  //   required: false,
+  // },
 });
 
 UserSchema.pre("save", async function () {
